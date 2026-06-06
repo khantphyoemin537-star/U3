@@ -16,14 +16,14 @@ APP_ID = 39584681
 APP_HASH = 'c8c0685d6dd5b9e546093ea90d27733b'
 BOT_TOKEN = '8111794244:AAGpkLE7h5x_IYFvjkVCbJosDC1TFbCGxcQ'
 
-OWNER_ID = 6015356597
-SPECIFIC_GROUP = -1003999318284
+OWNER_ID = 7693106830
+SPECIFIC_GROUP = -1003834579058
 COOLDOWN_TIME = 15
 
 # 🎯 NEW CHAT & BOT CONFIGURATIONS
 SPAWN_BOT_ID = 6157455819
 HINT_BOT_ID = 8506436817
-WAIFU_CHAT_ID = -1003999318284
+WAIFU_CHAT_ID = -1003834579058
 
 # Global States
 is_active = False
@@ -145,7 +145,7 @@ async def spawn_detector_handler(event):
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             
             # 🚫 Ban ခံရခြင်းမှ ကာကွယ်ရန် သတ်မှတ်ထားသော Group ID များဖြစ်ပါက လုံးဝ ငြိမ်နေစေရန်
-            if event.chat_id in [-1001947407820, -1003067509608]:
+            if event.chat_id in [-1001947407821, -1003067509601]:
                 return  
 
             # 1. ⚡ 🔵 🟣 🟠 ပါဝင်လာပါက မည်သည့်အလုပ်မှ မလုပ်ဘဲ လုံးဝ ငြိမ်နေစေရန်
@@ -192,10 +192,10 @@ async def hint_solver_handler(event):
                 target_group = spawn_tracker[event.reply_to_msg_id]
                 
             if target_group:
-                if target_group in [-1001947407820, -1003067509608]:
+                if target_group in [-1001947407821, -1003067509601]:
                     return
                 try:
-                    delay_time = random.uniform(1.2, 1.6) 
+                    delay_time = random.uniform(0.5, 0.7) 
                     
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
