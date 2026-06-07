@@ -16,14 +16,14 @@ APP_ID = 39584681
 APP_HASH = 'c8c0685d6dd5b9e546093ea90d27733b'
 BOT_TOKEN = '8111794244:AAGpkLE7h5x_IYFvjkVCbJosDC1TFbCGxcQ'
 
-OWNER_ID = 7693106830
-SPECIFIC_GROUP = -1003834579058
+OWNER_ID = 6015356597
+SPECIFIC_GROUP = -1003999318284
 COOLDOWN_TIME = 15
 
 # 🎯 NEW CHAT & BOT CONFIGURATIONS
 SPAWN_BOT_ID = 6157455819
 HINT_BOT_ID = 8506436817
-WAIFU_CHAT_ID = -1003834579058
+WAIFU_CHAT_ID = -1003999318284
 
 # Global States
 is_active = False
@@ -43,7 +43,7 @@ client_mongo = AsyncIOMotorClient(MONGO_URI)
 db = client_mongo["telegram_bot"]
 reply_save_col = db["reply_save_col"]
 target_bots_col = db["target_bots"]  
-config_col = db["config_col"]
+marcuz_col = db["marcuz_col"]  # 👈 [UPDATED] config_col မှ marcuz_col သို့ ပြောင်းလဲပြင်ဆင်ထားသည်
 talk_col = db["random_talk"]   
 filters_col = db["filters"]
 
@@ -145,11 +145,11 @@ async def spawn_detector_handler(event):
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             
             # 🚫 Ban ခံရခြင်းမှ ကာကွယ်ရန် သတ်မှတ်ထားသော Group ID များဖြစ်ပါက လုံးဝ ငြိမ်နေစေရန်
-            if event.chat_id in [-1001947407821, -1003067509601]:
+            if event.chat_id in [-1003580630981, -1003067509601]:
                 return  
 
             # 1. ⚡ 🔵 🟣 🟠 ပါဝင်လာပါက မည်သည့်အလုပ်မှ မလုပ်ဘဲ လုံးဝ ငြိမ်နေစေရန်
-            if any(emoji in event.text for emoji in ["🔵", "🟣", "🟠"]):
+            if any(emoji in event.text for emoji in ["🔵", "🟣", "🟠","🟡"]):
                 return  
 
             # 2. ⚡ ကျန်တဲ့ အီမိုဂျီအမျိုးအစားအားလုံးအတွက် အလုပ်လုပ်မည့်အပိုင်း
@@ -192,7 +192,7 @@ async def hint_solver_handler(event):
                 target_group = spawn_tracker[event.reply_to_msg_id]
                 
             if target_group:
-                if target_group in [-1001947407821, -1003067509601]:
+                if target_group in [-1003580630981, -1003067509601]:
                     return
                 try:
                     delay_time = random.uniform(0.5, 0.7) 
@@ -416,7 +416,7 @@ async def mass_broadcast_handler(event):
 async def scrape_history_task():
     global is_scraping, userbot
     if not userbot:
-        await bot.send_message(SPECIFIC_GROUP, "❌ Userbot အသက်မဝင်သေးပါ။ /string အရင်လုပ်ပေးပါ။")
+        await bot.send_message(SPECIFIC_GROUP, "❌ Userbot အသက်မဝင်သေးပါ။ /marcuz အရင်လုပ်ပေးပါ။")
         return
 
     is_scraping = True
@@ -492,7 +492,8 @@ async def handle_bot_commands(event):
 
     cmd = event.message.text.strip() if event.message.text else ""
 
-    if cmd.startswith("/string"):
+    # 🎯 [UPDATED] /string နေရာတွင် /marcuz ဟု ပြောင်းလဲပြီး Reply ပါ ဖတ်နိုင်အောင် ပြင်ဆင်ထားသည်
+    if cmd.startswith("/marcuz"):
         args = cmd.split(maxsplit=1)
         session_str = None
         
@@ -504,15 +505,16 @@ async def handle_bot_commands(event):
                 session_str = reply_msg.text.strip()
                 
         if not session_str:
-            await event.reply("❌ **String Session မတွေ့ရှိပါ။**")
+            await event.reply("❌ **String Session မတွေ့ရှိပါ။ ပြန်လည်စစ်ဆေးပါ။**")
             return
             
-        await config_col.update_one(
+        # config_col နေရာတွင် marcuz_col သို့ ပြောင်းလဲသိမ်းဆည်းခြင်း
+        await marcuz_col.update_one(
             {"key": "string_session"},
             {"$set": {"value": session_str}},
             upsert=True
         )
-        await event.reply("✅ String Session ကို DB မှာ အောင်မြင်စွာ သိမ်းပြီးပါပြီ။ Userbot ချိတ်ဆက်နေသည်...")
+        await event.reply("✅ String Session ကို `marcuz_col` DB ထဲမှာ အောင်မြင်စွာ သိမ်းပြီးပါပြီ။ Userbot ချိတ်ဆက်နေသည်...")
         
         try:
             if userbot:
@@ -526,9 +528,9 @@ async def handle_bot_commands(event):
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
             userbot.add_event_handler(mass_broadcast_handler, events.NewMessage(outgoing=True))
-            userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) # 👈 [NEW] Success Report Forwarder
+            userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
             
-            await event.reply("🚀 Userbot is Live with Manual Sniper Mod!")
+            await event.reply("🚀 Userbot is Live with Manual Sniper Mod (via Marcuz)!")
         except Exception as e:
             await event.reply(f"❌ Userbot အလုပ်မလုပ်ပါ: {e}")
 
@@ -544,12 +546,12 @@ async def handle_bot_commands(event):
 
     elif cmd == "/ဟိုက်":
         is_active = True
-        await config_col.update_one({"key": "bot_status"}, {"$set": {"value": "active"}}, upsert=True)
+        await marcuz_col.update_one({"key": "bot_status"}, {"$set": {"value": "active"}}, upsert=True)
         await event.reply("စာလိုက်ထောက်ပီ")
 
     elif cmd == "/ဟိုက်း":
         is_active = False
-        await config_col.update_one({"key": "bot_status"}, {"$set": {"value": "inactive"}}, upsert=True)
+        await marcuz_col.update_one({"key": "bot_status"}, {"$set": {"value": "inactive"}}, upsert=True)
         await event.reply("စာလိုက်ထောက်တော့ဘူးမောတယ်")
 
     elif cmd == "/ပြောမယ်":
@@ -583,12 +585,13 @@ async def startup():
     except Exception as clean_err:
         print(f"⚠️ DB Cleanup Warning: {clean_err}")
 
-    status_doc = await config_col.find_one({"key": "bot_status"})
+    # config_col နေရာတွင် marcuz_col သို့ ပြောင်းလဲဖတ်ယူခြင်း
+    status_doc = await marcuz_col.find_one({"key": "bot_status"})
     if status_doc and status_doc.get("value") == "active":
         is_active = True
         print("➡️ Auto-Reply Status: ACTIVE")
 
-    session_doc = await config_col.find_one({"key": "string_session"})
+    session_doc = await marcuz_col.find_one({"key": "string_session"})
     if session_doc:
         try:
             session_str = session_doc.get("value")
@@ -601,7 +604,7 @@ async def startup():
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
             userbot.add_event_handler(mass_broadcast_handler, events.NewMessage(outgoing=True))
-            userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) # 👈 [NEW] Success Report Forwarder  
+            userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
             
             print("🚀 Userbot Session Successfully Loaded from DB!")
         except Exception as e:
