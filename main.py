@@ -71,28 +71,6 @@ async def start_dummy_web_server():
     except Exception as e:
         print(f"❌ Failed to start Dummy Web Server: {e}")
 
-# ==========================================
-# 🗑️ ANTI-FLOOD DELAYED DELETION TASK
-# ==========================================
-async def delete_bot_message_delayed(event, bot_msg_id, cmd_msg_id=0):
-    try:
-        await asyncio.sleep(3)
-        to_delete = [bot_msg_id]
-        if cmd_msg_id:
-            to_delete.append(cmd_msg_id)
-            
-        await event.client.delete_messages(event.chat_id, to_delete)
-        print(f"🗑️ Auto-deleted message {bot_msg_id} after delay.")
-        
-    except errors.rpcerrorlist.FloodWaitError as e:
-        print(f"⚠️ FloodWait Caught! Must wait {e.seconds} seconds.")
-        await asyncio.sleep(e.seconds)
-        try:
-            await event.client.delete_messages(event.chat_id, to_delete)
-        except Exception:
-            pass
-    except Exception as e:
-        print(f"❌ Error during delayed deletion: {e}")
 
 # ⏱️ [NEW] /catch command အား ၁ စက္ကန့်အကြာတွင် အလိုအလျောက် ပြန်ဖျက်ပေးမည့် သီးသန့် Task
 async def delete_catch_message_delayed(client, chat_id, msg_id):
@@ -102,38 +80,6 @@ async def delete_catch_message_delayed(client, chat_id, msg_id):
         print(f"🗑️ Auto-deleted /catch message {msg_id} after 1 second.")
     except Exception as e:
         print(f"❌ Failed to delete /catch message: {e}")
-
-# ==========================================
-# ⚔️ ANTI-FLOOD RAID / SPAM TASK SYSTEM
-# ==========================================
-async def run_raid_spam_task(event, reply_msg_id, chat_id):
-    try:
-        while True:
-            pipeline = [{"$sample": {"size": 1}}]
-            cursor = filters_col.aggregate(pipeline)
-            docs = await cursor.to_list(length=1)
-            
-            if docs:
-                reply_text = docs[0].get("text") or docs[0].get("word") or "🎯"
-                try:
-                    await event.client.send_message(
-                        chat_id, 
-                        reply_text, 
-                        reply_to=reply_msg_id
-                    )
-                    await asyncio.sleep(1.0)
-                    
-                except errors.rpcerrorlist.FloodWaitError as e:
-                    print(f"⚠️ FloodWait မိသွားသဖြင့် {e.seconds} စက္ကန့် စောင့်ဆိုင်းနေသည်။")
-                    await asyncio.sleep(e.seconds)
-                except Exception as e:
-                    print(f"❌ Spam Error: {e}")
-                    await asyncio.sleep(1.0)
-            else:
-                await asyncio.sleep(2.0)
-                
-    except asyncio.CancelledError:
-        print(f"🛑 Chat ID: {chat_id} တွင် Raid လုပ်ငန်းစဉ် ရပ်တန့်ပြီး။")
 
 # ==========================================
 # ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
@@ -287,31 +233,7 @@ async def handle_bot_commands(event):
         is_catch_stopped = False
         await event.reply("✅ **Chief! `/catch` လုပ်ငန်းစဉ်ကို ပြန်လည်စတင်လိုက်ပါပြီ။**")
 
-    elif cmd == "/ဟိုက်":
-        is_active = True
-        await marcuz_col.update_one({"key": "bot_status"}, {"$set": {"value": "active"}}, upsert=True)
-        await event.reply("စာလိုက်ထောက်ပီ")
-
-    elif cmd == "/ဟိုက်း":
-        is_active = False
-        await marcuz_col.update_one({"key": "bot_status"}, {"$set": {"value": "inactive"}}, upsert=True)
-        await event.reply("စာလိုက်ထောက်တော့ဘူးမောတယ်")
-
-    elif cmd == "/ပြောမယ်":
-        is_talker_active = True
-        await event.reply("💬 Talker mode activated.")
-     
-    elif cmd == "/မပြောဘူး":
-        is_talker_active = False
-        await event.reply("🔇 Talker mode deactivated.")
-
-    elif cmd == "/replyမှတ်":
-        if is_scraping:
-            await event.reply("⚠️ ယခုအချိန်တွင် စာမှတ်ခြင်းအလုပ် လုပ်ဆောင်နေဆဲဖြစ်သည်!")
-            return
-        asyncio.create_task(scrape_history_task())
-
-
+    
 # ==========================================
 # 🚀 SYSTEM STARTUP LOGIC
 # ==========================================
