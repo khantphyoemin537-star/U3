@@ -11,19 +11,20 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # ==========================================
 # ⚙️ CONFIGURATION (Credentials)
 # ==========================================
-MONGO_URI = "mongodb+srv://khantphyoemin537_db_user:9VRKiaeZkz7rJdpz@cluster0.w6tgi8j.mongodb.net/telegram_bot?appName=Cluster0&tlsAllowInvalidCertificates=true"
 APP_ID = 39584681
 APP_HASH = 'c8c0685d6dd5b9e546093ea90d27733b'
-BOT_TOKEN = '8111794244:AAGpkLE7h5x_IYFvjkVCbJosDC1TFbCGxcQ'
+MONGO_URI = "mongodb+srv://kkt:h1BdaMt7nxW9jTXa@cluster0.kb5fzfl.mongodb.net/?appName=Cluster0&tlsAllowInvalidCertificates=true"
+BOT_TOKEN = '8575371720:AAHZJ-aP6mUsWIz4tl6k-S5Er23eXRIDYOs'
 
 OWNER_ID = 6015356597
-SPECIFIC_GROUP = -1003999318284
+SPECIFIC_GROUP = -1003848067679
 COOLDOWN_TIME = 15
 
 # 🎯 NEW CHAT & BOT CONFIGURATIONS
 SPAWN_BOT_ID = 6157455819
 HINT_BOT_ID = 8552029570
-WAIFU_CHAT_ID = -1003999318284
+WAIFU_CHAT_ID = -1003848067679
+
 # Global States
 is_active = False
 is_scraping = False
@@ -35,7 +36,7 @@ spam_tasks = {}
 spawn_tracker = {}            # Waifu Chat ထဲက ID တွေကို မူရင်း Group ID နဲ့ ချိတ်ဆက်ပေးမယ့် မြန်နှုန်းမြင့် Map
 last_spawn_chat_id = None     # Hint Bot က Reply မပြန်ခဲ့ရင် သုံးမယ့် Fallback Group ID
 HINT_REGEX = re.compile(r"(/catch\s+[^\n]+)") 
-is_catch_stopped = False      # 👈 [NEW] OWNER က Manual ထိန်းချုပ်ရန် စတိတ် (Default: အလုပ်လုပ်မည်)
+is_catch_stopped = False # 👈 [NEW] OWNER က Manual ထိန်းချုပ်ရန် စတိတ် (Default: အလုပ်လုပ်မည်)
 
 # MongoDB Setup
 client_mongo = AsyncIOMotorClient(MONGO_URI)
