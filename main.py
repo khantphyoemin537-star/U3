@@ -196,7 +196,7 @@ async def hint_solver_handler(event):
                 if target_group in [-1001947407820, -1003067509608]:
                     return
                 try:
-                    delay_time = random.uniform(1, 1.2) 
+                    delay_time = random.uniform(3, 4) 
                     
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
