@@ -11,20 +11,19 @@ from motor.motor_asyncio import AsyncIOMotorClient
 # ==========================================
 # ⚙️ CONFIGURATION (Credentials)
 # ==========================================
+MONGO_URI = "mongodb+srv://khantphyoemin537_db_user:9VRKiaeZkz7rJdpz@cluster0.w6tgi8j.mongodb.net/telegram_bot?appName=Cluster0&tlsAllowInvalidCertificates=true"
 APP_ID = 39584681
 APP_HASH = 'c8c0685d6dd5b9e546093ea90d27733b'
-MONGO_URI = "mongodb+srv://kkt:h1BdaMt7nxW9jTXa@cluster0.kb5fzfl.mongodb.net/?appName=Cluster0&tlsAllowInvalidCertificates=true"
-BOT_TOKEN = '8575371720:AAHZJ-aP6mUsWIz4tl6k-S5Er23eXRIDYOs'
+BOT_TOKEN = '8111794244:AAGpkLE7h5x_IYFvjkVCbJosDC1TFbCGxcQ'
 
 OWNER_ID = 6015356597
-SPECIFIC_GROUP = -1003848067679
-COOLDOWN_TIME = 2
+SPECIFIC_GROUP = -1003999318284
+COOLDOWN_TIME = 15
 
 # 🎯 NEW CHAT & BOT CONFIGURATIONS
 SPAWN_BOT_ID = 6157455819
 HINT_BOT_ID = 8552029570
-WAIFU_CHAT_ID = -1003848067679
-
+WAIFU_CHAT_ID = -1003999318284
 # Global States
 is_active = False
 is_scraping = False
@@ -43,7 +42,8 @@ client_mongo = AsyncIOMotorClient(MONGO_URI)
 db = client_mongo["telegram_bot"]
 reply_save_col = db["reply_save_col"]
 target_bots_col = db["target_bots"]  
-marcuz_col = db["marcuz_col"]  # 👈 [UPDATED] config_col မှ marcuz_col သို့ ပြောင်းလဲပြင်ဆင်ထားသည်
+tomboy_col = db["tomboy_col"]  
+marcuz_col = db["marcuz_col"]  # 👈 [NEW] String Session / Useraccount လုပ်ဆောင်ချက်များအတွက် သီးသန့် Collection
 talk_col = db["random_talk"]   
 filters_col = db["filters"]
 
@@ -71,6 +71,28 @@ async def start_dummy_web_server():
     except Exception as e:
         print(f"❌ Failed to start Dummy Web Server: {e}")
 
+# ==========================================
+# 🗑️ ANTI-FLOOD DELAYED DELETION TASK
+# ==========================================
+async def delete_bot_message_delayed(event, bot_msg_id, cmd_msg_id=0):
+    try:
+        await asyncio.sleep(3)
+        to_delete = [bot_msg_id]
+        if cmd_msg_id:
+            to_delete.append(cmd_msg_id)
+            
+        await event.client.delete_messages(event.chat_id, to_delete)
+        print(f"🗑️ Auto-deleted message {bot_msg_id} after delay.")
+        
+    except errors.rpcerrorlist.FloodWaitError as e:
+        print(f"⚠️ FloodWait Caught! Must wait {e.seconds} seconds.")
+        await asyncio.sleep(e.seconds)
+        try:
+            await event.client.delete_messages(event.chat_id, to_delete)
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"❌ Error during delayed deletion: {e}")
 
 # ⏱️ [NEW] /catch command အား ၁ စက္ကန့်အကြာတွင် အလိုအလျောက် ပြန်ဖျက်ပေးမည့် သီးသန့် Task
 async def delete_catch_message_delayed(client, chat_id, msg_id):
@@ -81,22 +103,37 @@ async def delete_catch_message_delayed(client, chat_id, msg_id):
     except Exception as e:
         print(f"❌ Failed to delete /catch message: {e}")
 
-
 # ==========================================
-# 🛠️ [FIXED] MISSING HANDLERS DEFINITIONS
+# ⚔️ ANTI-FLOOD RAID / SPAM TASK SYSTEM
 # ==========================================
-async def handle_userbot_reply(event):
-    """ Userbot ရဲ့ Auto Reply လုပ်ဆောင်ချက်များကို ဤနေရာတွင် ရေးသားနိုင်ပါသည် """
-    global is_active
-    if not is_active:
-        return
-    # မိမိ ထည့်ချင်သော စာပြန်သည့် Logic များကို ဒီနေရာတွင် ရေးပါ
-    pass
-
-async def mass_broadcast_handler(event):
-    """ Mass Broadcast လုပ်ဆောင်ချက်များကို ဤနေရာတွင် ရေးသားနိုင်ပါသည် """
-    pass
-
+async def run_raid_spam_task(event, reply_msg_id, chat_id):
+    try:
+        while True:
+            pipeline = [{"$sample": {"size": 1}}]
+            cursor = filters_col.aggregate(pipeline)
+            docs = await cursor.to_list(length=1)
+            
+            if docs:
+                reply_text = docs[0].get("text") or docs[0].get("word") or "🎯"
+                try:
+                    await event.client.send_message(
+                        chat_id, 
+                        reply_text, 
+                        reply_to=reply_msg_id
+                    )
+                    await asyncio.sleep(1.0)
+                    
+                except errors.rpcerrorlist.FloodWaitError as e:
+                    print(f"⚠️ FloodWait မိသွားသဖြင့် {e.seconds} စက္ကန့် စောင့်ဆိုင်းနေသည်။")
+                    await asyncio.sleep(e.seconds)
+                except Exception as e:
+                    print(f"❌ Spam Error: {e}")
+                    await asyncio.sleep(1.0)
+            else:
+                await asyncio.sleep(2.0)
+                
+    except asyncio.CancelledError:
+        print(f"🛑 Chat ID: {chat_id} တွင် Raid လုပ်ငန်းစဉ် ရပ်တန့်ပြီး။")
 
 # ==========================================
 # ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
@@ -108,11 +145,11 @@ async def spawn_detector_handler(event):
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             
             # 🚫 Ban ခံရခြင်းမှ ကာကွယ်ရန် သတ်မှတ်ထားသော Group ID များဖြစ်ပါက လုံးဝ ငြိမ်နေစေရန်
-            if event.chat_id in [-1001947407820, -1003067509608]:
+            if event.chat_id in [-1001947407821, -1003067509601]:
                 return  
 
             # 1. ⚡ 🔵 🟣 🟠 ပါဝင်လာပါက မည်သည့်အလုပ်မှ မလုပ်ဘဲ လုံးဝ ငြိမ်နေစေရန်
-            if any(emoji in event.text for emoji in ["🔵", "🟣", "🟠"]):
+            if any(emoji in event.text for emoji in ["🔵"]):
                 return  
 
             # 2. ⚡ ကျန်တဲ့ အီမိုဂျီအမျိုးအစားအားလုံးအတွက် အလုပ်လုပ်မည့်အပိုင်း
@@ -158,7 +195,7 @@ async def hint_solver_handler(event):
                 if target_group in [-1001947407820, -1003067509608]:
                     return
                 try:
-                    delay_time = random.uniform(0.6, 0.9) 
+                    delay_time = random.uniform(1, 1.2) 
                     
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
@@ -198,8 +235,8 @@ async def handle_bot_commands(event):
 
     cmd = event.message.text.strip() if event.message.text else ""
 
-    # 🎯 [UPDATED] /string နေရာတွင် /marcuz ဟု ပြောင်းလဲပြီး Reply ပါ ဖတ်နိုင်အောင် ပြင်ဆင်ထားသည်
-    if cmd.startswith("/marcuz"):
+    # 🎯 /string သို့မဟုတ် /tom command ဖြင့် String Session လက်ခံပြီး marcuz_col ထဲသို့ သိမ်းဆည်းမည့်အပိုင်း
+    if cmd.startswith("/marcuz") or cmd.startswith("/mc"):
         args = cmd.split(maxsplit=1)
         session_str = None
         
@@ -211,16 +248,16 @@ async def handle_bot_commands(event):
                 session_str = reply_msg.text.strip()
                 
         if not session_str:
-            await event.reply("❌ **String Session မတွေ့ရှိပါ။ ပြန်လည်စစ်ဆေးပါ။**")
+            await event.reply("❌ **String Session မတွေ့ရှိပါ။**")
             return
             
-        # config_col နေရာတွင် marcuz_col သို့ ပြောင်းလဲသိမ်းဆည်းခြင်း
+        # 🔄 tomboy_col အစား marcuz_col ထဲသို့ ပြောင်းလဲ သိမ်းဆည်းမည်
         await marcuz_col.update_one(
             {"key": "string_session"},
             {"$set": {"value": session_str}},
             upsert=True
         )
-        await event.reply("✅ String Session ကို `marcuz_col` DB ထဲမှာ အောင်မြင်စွာ သိမ်းပြီးပါပြီ။ Userbot ချိတ်ဆက်နေသည်...")
+        await event.reply("✅ String Session ကို `marcuz_col` ထဲမှာ အောင်မြင်စွာ သိမ်းပြီးပါပြီ။ Userbot ချိတ်ဆက်နေသည်...")
         
         try:
             if userbot:
@@ -230,13 +267,11 @@ async def handle_bot_commands(event):
             await userbot.get_dialogs()
             
             # Register Handlers
-            userbot.add_event_handler(handle_userbot_reply, events.NewMessage())
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
-            userbot.add_event_handler(mass_broadcast_handler, events.NewMessage(outgoing=True))
             userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
             
-            await event.reply("🚀 Userbot is Live with Manual Sniper Mod (via Marcuz)!")
+            await event.reply("🚀 Userbot is Live with Manual Sniper Mod!")
         except Exception as e:
             await event.reply(f"❌ Userbot အလုပ်မလုပ်ပါ: {e}")
 
@@ -249,8 +284,7 @@ async def handle_bot_commands(event):
     elif cmd == "/start":
         is_catch_stopped = False
         await event.reply("✅ **Chief! `/catch` လုပ်ငန်းစဉ်ကို ပြန်လည်စတင်လိုက်ပါပြီ။**")
-
-    
+ 
 # ==========================================
 # 🚀 SYSTEM STARTUP LOGIC
 # ==========================================
@@ -267,12 +301,12 @@ async def startup():
     except Exception as clean_err:
         print(f"⚠️ DB Cleanup Warning: {clean_err}")
 
-    # config_col နေရာတွင် marcuz_col သို့ ပြောင်းလဲဖတ်ယူခြင်း
     status_doc = await marcuz_col.find_one({"key": "bot_status"})
     if status_doc and status_doc.get("value") == "active":
         is_active = True
         print("➡️ Auto-Reply Status: ACTIVE")
 
+    # 🔄 Startup မှာလည်း marcuz_col ထဲက string_session ကို ဆွဲထုတ်ပြီး အလုပ်လုပ်ခိုင်းခြင်း
     session_doc = await marcuz_col.find_one({"key": "string_session"})
     if session_doc:
         try:
@@ -280,19 +314,17 @@ async def startup():
             userbot = TelegramClient(StringSession(session_str), APP_ID, APP_HASH)
             await userbot.start()
             await userbot.get_dialogs()
+
             
-            # Register Handlers at Startup
-            userbot.add_event_handler(handle_userbot_reply, events.NewMessage())
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
-            userbot.add_event_handler(mass_broadcast_handler, events.NewMessage(outgoing=True))
             userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
             
-            print("🚀 Userbot Session Successfully Loaded from DB!")
+            print("🚀 Userbot Session Successfully Loaded from marcuz_col!")
         except Exception as e:
             print(f"⚠️ Failed to load existing Userbot Session: {e}")
     else:
-        print("💡 No String Session found in DB yet.")
+        print("💡 No String Session found in marcuz_col yet.")
 
     await bot.start(bot_token=BOT_TOKEN)
     print("🤖 Official Bot is running...")
@@ -300,3 +332,4 @@ async def startup():
 
 if __name__ == '__main__':
     asyncio.run(startup())
+
