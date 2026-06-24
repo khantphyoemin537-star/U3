@@ -81,6 +81,23 @@ async def delete_catch_message_delayed(client, chat_id, msg_id):
     except Exception as e:
         print(f"❌ Failed to delete /catch message: {e}")
 
+
+# ==========================================
+# 🛠️ [FIXED] MISSING HANDLERS DEFINITIONS
+# ==========================================
+async def handle_userbot_reply(event):
+    """ Userbot ရဲ့ Auto Reply လုပ်ဆောင်ချက်များကို ဤနေရာတွင် ရေးသားနိုင်ပါသည် """
+    global is_active
+    if not is_active:
+        return
+    # မိမိ ထည့်ချင်သော စာပြန်သည့် Logic များကို ဒီနေရာတွင် ရေးပါ
+    pass
+
+async def mass_broadcast_handler(event):
+    """ Mass Broadcast လုပ်ဆောင်ချက်များကို ဤနေရာတွင် ရေးသားနိုင်ပါသည် """
+    pass
+
+
 # ==========================================
 # ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
 # ==========================================
@@ -283,4 +300,3 @@ async def startup():
 
 if __name__ == '__main__':
     asyncio.run(startup())
-
