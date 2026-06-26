@@ -22,7 +22,7 @@ COOLDOWN_TIME = 15
 
 # 🎯 NEW CHAT & BOT CONFIGURATIONS
 SPAWN_BOT_ID = 6157455819
-HINT_BOT_ID = 8552029570
+HINT_BOT_ID = 8506436817
 WAIFU_CHAT_ID = -1003848067679
 
 # Global States
@@ -196,7 +196,7 @@ async def hint_solver_handler(event):
                 if target_group in [-1001947407820, -1003067509608]:
                     return
                 try:
-                    delay_time = random.uniform(3, 4) 
+                    delay_time = random.uniform(2.3, 4) 
                     
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
