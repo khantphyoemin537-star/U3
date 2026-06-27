@@ -16,7 +16,7 @@ APP_HASH = 'c8c0685d6dd5b9e546093ea90d27733b'
 MONGO_URI = "mongodb+srv://kkt:h1BdaMt7nxW9jTXa@cluster0.kb5fzfl.mongodb.net/?appName=Cluster0&tlsAllowInvalidCertificates=true"
 BOT_TOKEN = '8575371720:AAHZJ-aP6mUsWIz4tl6k-S5Er23eXRIDYOs'
 
-OWNER_ID = 6015356597
+OWNER_ID = 7693106830
 SPECIFIC_GROUP = -1003848067679
 COOLDOWN_TIME = 15
 
@@ -140,7 +140,12 @@ async def run_raid_spam_task(event, reply_msg_id, chat_id):
 # ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
 # ==========================================
 async def spawn_detector_handler(event):
-    global last_spawn_chat_id, spawn_tracker
+    global last_spawn_chat_id, spawn_tracker, is_catch_stopped
+    
+    # 🛑 OWNER က /stop ထားပါက Detector လုံးဝ အလုပ်မလုပ်စေရန်
+    if is_catch_stopped:
+        return
+
     """ Spawn Bot က ပုံ/ဗီဒီယိုနှင့် စာပို့လာပါက ဖမ်းဆီး၍ Forward ပို့မည့်စနစ် """
     if event.sender_id == SPAWN_BOT_ID and event.text:
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
@@ -158,13 +163,9 @@ async def spawn_detector_handler(event):
             last_spawn_chat_id = orig_chat_id  
             
             try:
-                # Waifu Chat ထံ တိုက်ရိုက် Forward ပို့ခြင်း
                 fwd_msg = await event.message.forward_to(WAIFU_CHAT_ID)
-                
-                # Forward ပြီးတာနဲ့ /waifu လို့ ချက်ချင်း Reply ပြန်အော်မည်
                 reply_msg = await fwd_msg.reply("/waifu")
                 
-                # Hint Solver အတွက် ID များကို အမြန်မှတ်သားခြင်း
                 spawn_tracker[fwd_msg.id] = orig_chat_id
                 spawn_tracker[reply_msg.id] = orig_chat_id
                 
@@ -196,7 +197,7 @@ async def hint_solver_handler(event):
                 if target_group in [-1001947407820, -1003067509608]:
                     return
                 try:
-                    delay_time = random.uniform(2.3, 4) 
+                    delay_time = random.uniform(2, 3) 
                     
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
@@ -213,6 +214,12 @@ async def hint_solver_handler(event):
 
 # 📦 [UPDATED] မိမိကိုယ်တိုင် ဖမ်းမိတဲ့ ကတ် Report များကိုသာ Specific Group ထံ Forward ပေးမည့်စနစ်
 async def catch_success_forwarder_handler(event):
+    global is_catch_stopped
+
+    # 🛑 OWNER က /stop ထားပါက Success Report များကို Forward မပို့တော့ရန်
+    if is_catch_stopped:
+        return
+
     """ Spawn Bot က ကတ်မိသွားလို့ ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ! ဟု ပို့လာပြီး မိမိကို Mention ခေါ်ထားမှသာ Forward ပေးမည် """
     if event.sender_id == SPAWN_BOT_ID and event.text:
         
@@ -223,6 +230,7 @@ async def catch_success_forwarder_handler(event):
                 print("📦 Forwarded YOUR OWN success catch card report to SPECIFIC_GROUP.")
             except Exception as e:
                 print(f"❌ Success Card Forward Error: {e}")
+
 
 # ==========================================
 # 🤖 OFFICIAL BOT COMMAND HANDLERS
@@ -279,13 +287,13 @@ async def handle_bot_commands(event):
     # 🛑 [NEW] /catch စနစ်အား ကိုယ်တိုင်ပိတ်မည့် Command
     elif cmd == "/stop":
         is_catch_stopped = True
-        await event.reply("🛑 **Chief! `/catch` လုပ်ငန်းစဉ်ကို ရပ်ဆိုင်းလိုက်ပါပြီ။**\n(Detector နှင့် Forward စနစ်များတော့ ပုံမှန်အတိုင်း အလုပ်လုပ်ပေးနေပါမည်)")
+        await event.reply("🛑 **Chief! `Detector`, `/catch` နဲ့ `Forwarder` လုပ်ငန်းစဉ်အားလုံးကို ရပ်တန့်လိုက်ပါပြီ။**")
 
-    # ✅ [NEW] /catch စနစ်အား ပြန်လည်စတင်မည့် Command
+    # ✅ [NEW] Sniper စနစ်အားလုံးကို ပြန်လည်စတင်မည့် Command
     elif cmd == "/start":
         is_catch_stopped = False
-        await event.reply("✅ **Chief! `/catch` လုပ်ငန်းစဉ်ကို ပြန်လည်စတင်လိုက်ပါပြီ။**")
- 
+        await event.reply("✅ **Chief! Sniper လုပ်ငန်းစဉ်အားလုံးကို ပြန်လည်စတင်လိုက်ပါပြီ။ 🚀**")
+
 # ==========================================
 # 🚀 SYSTEM STARTUP LOGIC
 # ==========================================
