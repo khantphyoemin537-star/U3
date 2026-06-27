@@ -140,25 +140,16 @@ async def run_raid_spam_task(event, reply_msg_id, chat_id):
 # ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
 # ==========================================
 async def spawn_detector_handler(event):
-    global last_spawn_chat_id, spawn_tracker, is_catch_stopped
-    
-    # 🛑 OWNER က /stop ထားပါက Detector လုံးဝ အလုပ်မလုပ်စေရန်
-    if is_catch_stopped:
-        return
-
-    """ Spawn Bot က ပုံ/ဗီဒီယိုနှင့် စာပို့လာပါက ဖမ်းဆီး၍ Forward ပို့မည့်စနစ် """
+    global last_spawn_chat_id, spawn_tracker
     if event.sender_id == SPAWN_BOT_ID and event.text:
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             
-            # 🚫 Ban ခံရခြင်းမှ ကာကွယ်ရန် သတ်မှတ်ထားသော Group ID များဖြစ်ပါက လုံးဝ ငြိမ်နေစေရန်
             if event.chat_id in [-1001947407821, -1003067509601]:
                 return  
 
-            # 1. ⚡ 🔵 🟣 🟠 ပါဝင်လာပါက မည်သည့်အလုပ်မှ မလုပ်ဘဲ လုံးဝ ငြိမ်နေစေရန်
-            if any(emoji in event.text for emoji in ["🔵"]):
+            if any(emoji in event.text for emoji in ["🔵", "🟣"]):
                 return  
 
-            # 2. ⚡ ကျန်တဲ့ အီမိုဂျီအမျိုးအစားအားလုံးအတွက် အလုပ်လုပ်မည့်အပိုင်း
             orig_chat_id = event.chat_id
             last_spawn_chat_id = orig_chat_id  
             
@@ -175,12 +166,9 @@ async def spawn_detector_handler(event):
             except Exception:
                 pass
 
-
 async def hint_solver_handler(event):
     global last_spawn_chat_id, spawn_tracker, is_catch_stopped
-    """ Hint ပေးသော Bot ထံမှ /catch command ကို copy ယူပြီး မူရင်း Group ဆီသို့ အမြန်လှမ်းပို့မည့်စနစ် """
     
-    # 🛑 [NEW] OWNER က stop ထားပါက /catch သွားမပို့တော့ဘဲ Skip မည်
     if is_catch_stopped:
         return
 
@@ -194,42 +182,54 @@ async def hint_solver_handler(event):
                 target_group = spawn_tracker[event.reply_to_msg_id]
                 
             if target_group:
-                if target_group in [-1001947407820, -1003067509608]:
+                if target_group in [-1001947407821, -1003067509601]:
                     return
                 try:
-                    delay_time = random.uniform(2, 3) 
+                    delay_time = random.uniform(1.2, 2) 
                     
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
                         
-                    # 🎯 /catch လှမ်းပို့ပြီး ပို့လိုက်သော message object ကို ဖမ်းယူခြင်း
                     sent_msg = await event.client.send_message(target_group, catch_command)
                     print(f"🎯 Caught character with delay {delay_time:.2f}s")
                     
-                    # 🗑️ [NEW] ပို့ပြီးတာနဲ့ ၁ စက္ကန့်အကြာမှာ ထို /catch မက်ဆေ့ချ်ကို ပြန်ဖျက်ခိုင်းခြင်း
                     asyncio.create_task(delete_catch_message_delayed(event.client, target_group, sent_msg.id))
                     
                 except Exception as e:
                     print(f"❌ Catch Error: {e}")
 
-# 📦 [UPDATED] မိမိကိုယ်တိုင် ဖမ်းမိတဲ့ ကတ် Report များကိုသာ Specific Group ထံ Forward ပေးမည့်စနစ်
+# 📦 မိမိကိုယ်တိုင် ဖမ်းမိတဲ့ ကတ် Report များကိုသာ Specific Group ထံ Forward ပေးမည့်စနစ်
 async def catch_success_forwarder_handler(event):
-    global is_catch_stopped
-
-    # 🛑 OWNER က /stop ထားပါက Success Report များကို Forward မပို့တော့ရန်
-    if is_catch_stopped:
-        return
-
     """ Spawn Bot က ကတ်မိသွားလို့ ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ! ဟု ပို့လာပြီး မိမိကို Mention ခေါ်ထားမှသာ Forward ပေးမည် """
     if event.sender_id == SPAWN_BOT_ID and event.text:
         
-        # 🔍 စာသားထဲမှာ ပါဝင်ရမည့်အပြင် event.message.mentioned (မိမိအကောင့်ကို Tag ခေါ်ထားခြင်း) ဖြစ်မှသာ အလုပ်လုပ်မည်
-        if "ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ!" in event.text and event.message.mentioned:
+        # 🎯 စာသားမှန်ကန်ကြောင်း အရင်စစ်ဆေးခြင်း
+        if "ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ!" in event.text:
             try:
-                await event.message.forward_to(SPECIFIC_GROUP)
-                print("📦 Forwarded YOUR OWN success catch card report to SPECIFIC_GROUP.")
+                me = await event.client.get_me()
+                first_name = me.first_name.lower() if me.first_name else ""
+                last_name = me.last_name.lower() if me.last_name else ""
+                full_name = f"{first_name} {last_name}".strip()
+                username = me.username.lower() if me.username else ""
+                
+                text_lower = event.text.lower()
+                
+                # ⚡ [Best of Both Worlds] မင်းရဲ့ စုံလင်တဲ့ Logic ကို ကျစ်လျစ်စွာ ပေါင်းစပ်ထားခြင်း
+                if (
+                    event.message.mentioned or 
+                    (first_name and first_name in text_lower) or 
+                    (full_name and full_name in text_lower) or 
+                    (username and username in text_lower)
+                ):
+                    await event.message.forward_to(SPECIFIC_GROUP)
+                    print("📦 Forwarded YOUR OWN success catch card report to SPECIFIC_GROUP.")
+                    
             except Exception as e:
                 print(f"❌ Success Card Forward Error: {e}")
+
+
+
+
 
 
 # ==========================================
