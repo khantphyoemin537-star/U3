@@ -36,7 +36,7 @@ spam_tasks = {}
 spawn_tracker = {}            # Waifu Chat ထဲက ID တွေကို မူရင်း Group ID နဲ့ ချိတ်ဆက်ပေးမယ့် မြန်နှုန်းမြင့် Map
 last_spawn_chat_id = None     # Hint Bot က Reply မပြန်ခဲ့ရင် သုံးမယ့် Fallback Group ID
 HINT_REGEX = re.compile(r"(/catch\s+[^\n]+)") 
-is_catch_stopped = False # 👈 [NEW] OWNER က Manual ထိန်းချုပ်ရန် စတိတ် (Default: အလုပ်လုပ်မည်)
+is_catch_stopped = False # 👈 OWNER က Manual ထိန်းချုပ်ရန် စတိတ် (Default: အလုပ်လုပ်မည်)
 
 # MongoDB Setup
 client_mongo = AsyncIOMotorClient(MONGO_URI)
@@ -44,7 +44,7 @@ db = client_mongo["telegram_bot"]
 reply_save_col = db["reply_save_col"]
 target_bots_col = db["target_bots"]  
 tomboy_col = db["tomboy_col"]  
-marcuz_col = db["marcuz_col"]  # 👈 [NEW] String Session / Useraccount လုပ်ဆောင်ချက်များအတွက် သီးသန့် Collection
+marcuz_col = db["marcuz_col"]  # 👈 String Session / Useraccount လုပ်ဆောင်ချက်များအတွက် သီးသန့် Collection
 talk_col = db["random_talk"]   
 filters_col = db["filters"]
 
@@ -140,7 +140,12 @@ async def run_raid_spam_task(event, reply_msg_id, chat_id):
 # ⚔️ NEW ANIME SPAWN DETECTOR & CATCHER HANDLERS (ULTRA SPEED OPTIMIZED)
 # ==========================================
 async def spawn_detector_handler(event):
-    global last_spawn_chat_id, spawn_tracker
+    global last_spawn_chat_id, spawn_tracker, is_catch_stopped # 👈 [FIXED] ဒီမှာ is_catch_stopped ထည့်ပေးလိုက်ပါပြီ
+    
+    # 🛑 OWNER က /stop ထားပါက ဤ Detector လုံးဝ အလုပ်မလုပ်စေရန်
+    if is_catch_stopped:
+        return
+
     if event.sender_id == SPAWN_BOT_ID and event.text:
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             
@@ -200,37 +205,18 @@ async def hint_solver_handler(event):
 
 # 📦 မိမိကိုယ်တိုင် ဖမ်းမိတဲ့ ကတ် Report များကိုသာ Specific Group ထံ Forward ပေးမည့်စနစ်
 async def catch_success_forwarder_handler(event):
-    """ Spawn Bot က ကတ်မိသွားလို့ ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ! ဟု ပို့လာပြီး မိမိကို Mention ခေါ်ထားမှသာ Forward ပေးမည် """
+    global is_catch_stopped
+
+    if is_catch_stopped:
+        return
+
     if event.sender_id == SPAWN_BOT_ID and event.text:
-        
-        # 🎯 စာသားမှန်ကန်ကြောင်း အရင်စစ်ဆေးခြင်း
-        if "ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ!" in event.text:
+        if "ʏᴏᴜ ɢᴏᴛ ᴀ ɴᴇᴡ ᴄʜᴀʀᴀᴄᴛᴇʀ!" in event.text and event.message.mentioned:
             try:
-                me = await event.client.get_me()
-                first_name = me.first_name.lower() if me.first_name else ""
-                last_name = me.last_name.lower() if me.last_name else ""
-                full_name = f"{first_name} {last_name}".strip()
-                username = me.username.lower() if me.username else ""
-                
-                text_lower = event.text.lower()
-                
-                # ⚡ [Best of Both Worlds] မင်းရဲ့ စုံလင်တဲ့ Logic ကို ကျစ်လျစ်စွာ ပေါင်းစပ်ထားခြင်း
-                if (
-                    event.message.mentioned or 
-                    (first_name and first_name in text_lower) or 
-                    (full_name and full_name in text_lower) or 
-                    (username and username in text_lower)
-                ):
-                    await event.message.forward_to(SPECIFIC_GROUP)
-                    print("📦 Forwarded YOUR OWN success catch card report to SPECIFIC_GROUP.")
-                    
+                await event.message.forward_to(SPECIFIC_GROUP)
+                print("📦 Forwarded YOUR OWN success catch card report to SPECIFIC_GROUP.")
             except Exception as e:
                 print(f"❌ Success Card Forward Error: {e}")
-
-
-
-
-
 
 # ==========================================
 # 🤖 OFFICIAL BOT COMMAND HANDLERS
@@ -244,7 +230,6 @@ async def handle_bot_commands(event):
 
     cmd = event.message.text.strip() if event.message.text else ""
 
-    # 🎯 /string သို့မဟုတ် /tom command ဖြင့် String Session လက်ခံပြီး marcuz_col ထဲသို့ သိမ်းဆည်းမည့်အပိုင်း
     if cmd.startswith("/marcuz") or cmd.startswith("/mc"):
         args = cmd.split(maxsplit=1)
         session_str = None
@@ -260,7 +245,6 @@ async def handle_bot_commands(event):
             await event.reply("❌ **String Session မတွေ့ရှိပါ။**")
             return
             
-        # 🔄 tomboy_col အစား marcuz_col ထဲသို့ ပြောင်းလဲ သိမ်းဆည်းမည်
         await marcuz_col.update_one(
             {"key": "string_session"},
             {"$set": {"value": session_str}},
@@ -275,7 +259,6 @@ async def handle_bot_commands(event):
             await userbot.start()
             await userbot.get_dialogs()
             
-            # Register Handlers
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
             userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
@@ -284,15 +267,33 @@ async def handle_bot_commands(event):
         except Exception as e:
             await event.reply(f"❌ Userbot အလုပ်မလုပ်ပါ: {e}")
 
-    # 🛑 [NEW] /catch စနစ်အား ကိုယ်တိုင်ပိတ်မည့် Command
+    # 🛑 /catch စနစ်အား ကိုယ်တိုင်ပိတ်မည့် Command
     elif cmd == "/stop":
         is_catch_stopped = True
-        await event.reply("🛑 **Chief! `Detector`, `/catch` နဲ့ `Forwarder` လုပ်ငန်းစဉ်အားလုံးကို ရပ်တန့်လိုက်ပါပြီ။**")
+        await event.reply("🛑 **Chief! `Detector`, `/catch` နဲ့ `Forwarder` လုပ်ငန်းစဉ်အားလုံးကို ရပ်တန့်လိုက်ပါပြီ။ Userbot အနားယူနေပါပြီ။ 💤**")
 
-    # ✅ [NEW] Sniper စနစ်အားလုံးကို ပြန်လည်စတင်မည့် Command
+    # ✅ Sniper စနစ်အားလုံးကို ပြန်လည်စတင်မည့် Command
     elif cmd == "/start":
         is_catch_stopped = False
         await event.reply("✅ **Chief! Sniper လုပ်ငန်းစဉ်အားလုံးကို ပြန်လည်စတင်လိုက်ပါပြီ။ 🚀**")
+
+    # 🗣️ [NEW] Userbot အသက်ရှင်/မရှင် စမ်းသပ်ရန် Echo Command
+    elif cmd.startswith("/echo"):
+        if not userbot:
+            await event.reply("❌ **Userbot မချိတ်ဆက်ရသေးပါ။** `/marcuz <session>` ဖြင့် အရင်ချိတ်ပါ။")
+            return
+            
+        # `/echo` နောက်က စာသားများကို ခွဲထုတ်ယူမည်
+        text_to_echo = cmd[5:].strip()
+        
+        if text_to_echo:
+            try:
+                # 🤖 Bot ကမဟုတ်ဘဲ, Userbot ကိုယ်တိုင်က Specific Group ထဲကို စာပြန်ပို့ပေးမည်
+                await userbot.send_message(SPECIFIC_GROUP, text_to_echo)
+            except Exception as e:
+                await event.reply(f"❌ **Userbot မှ စာပို့၍မရပါ:** {e}")
+        else:
+            await event.reply("⚠️ **အသုံးပြုပုံ:** `/echo Hi` သို့မဟုတ် `/echo Userbot အသက်ရှင်လား`")
 
 # ==========================================
 # 🚀 SYSTEM STARTUP LOGIC
@@ -315,7 +316,6 @@ async def startup():
         is_active = True
         print("➡️ Auto-Reply Status: ACTIVE")
 
-    # 🔄 Startup မှာလည်း marcuz_col ထဲက string_session ကို ဆွဲထုတ်ပြီး အလုပ်လုပ်ခိုင်းခြင်း
     session_doc = await marcuz_col.find_one({"key": "string_session"})
     if session_doc:
         try:
@@ -324,7 +324,6 @@ async def startup():
             await userbot.start()
             await userbot.get_dialogs()
 
-            
             userbot.add_event_handler(spawn_detector_handler, events.NewMessage())
             userbot.add_event_handler(hint_solver_handler, events.NewMessage())
             userbot.add_event_handler(catch_success_forwarder_handler, events.NewMessage()) 
@@ -341,4 +340,3 @@ async def startup():
 
 if __name__ == '__main__':
     asyncio.run(startup())
-
