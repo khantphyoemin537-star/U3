@@ -130,7 +130,7 @@ async def spawn_detector_handler(event):
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             if event.chat_id in [-1001947407821, -1003067509601]:
                 return  
-            if any(emoji in event.text for emoji in ["🔵", "🟣"]):
+            if any(emoji in event.text for emoji in ["🔵", "🟣" ,"🟡" ,"🟠"]):
                 return  
 
             orig_chat_id = event.chat_id
@@ -167,7 +167,7 @@ async def hint_solver_handler(event):
                 if target_group in [-1001947407821, -1003067509601]:
                     return
                 try:
-                    delay_time = random.uniform(1.2, 2) 
+                    delay_time = random.uniform(0.5, 0.6) 
                     async with event.client.action(target_group, 'typing'):
                         await asyncio.sleep(delay_time)
                         
