@@ -130,7 +130,7 @@ async def spawn_detector_handler(event):
         if "ᴀ ᴄʜᴀʀᴀᴄᴛᴇʀ ʜᴀs sᴘᴀᴡɴᴇᴅ ɪɴ ᴛʜᴇ ᴄʜᴀᴛ!" in event.text:
             if event.chat_id in [-1001947407821, -1003067509601]:
                 return  
-            if any(emoji in event.text for emoji in ["🔵", "🟣" ,"🟡" ,"🟠"]):
+            if any(emoji in event.text for emoji in ["🔵", "🟣" ,"🟡" ,"🟠","💮"]):
                 return  
 
             orig_chat_id = event.chat_id
